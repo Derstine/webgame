@@ -32,6 +32,10 @@ function readUserInput(ws, message, deltas, clients, userRef, user) {
             sockets[data] = ws;
             // send client list of clients
             sendGameData(ws, clients);
+            // send all clients a new client
+            for(let user in sockets) {
+                sockets[user].send(`newclient|${data}.${0}.${0}`);
+            }
         } else if(command == 'request') {
             console.log('client is requesting data')
         }

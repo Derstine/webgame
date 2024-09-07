@@ -7,6 +7,7 @@ clients = {};
 deltas = {};
 sockets = {};
 
+
 wss.on('connection', ws => {
     username = {user: ''};
     // send users and locations

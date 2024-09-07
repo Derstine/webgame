@@ -117,6 +117,10 @@
                             [user, x, y] = user.split('.');
                             clients[user] = [parseFloat(x), parseFloat(y)];
                         });
+                    } else if(command == 'newclient') {
+                        // newclient|user.x.y
+                        [user, x, y] = data.split('.');
+                        clients[user] = [parseFloat(x), parseFloat(y)];
                     }
                 };
 
