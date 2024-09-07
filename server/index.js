@@ -1,38 +1,20 @@
 const WebSocket = require('ws');
+const readUserInput = require('./userInput')
 const wss = new WebSocket.Server({ port: 8080 });
 
 const USER_CAP = 20;
 clients = {};
+deltas = {};
 sockets = {};
 
 wss.on('connection', ws => {
-    username = "";
+    username = {user: ''};
     // send users and locations
 
-    ws.on('message', message => {
-        messageObj = JSON.parse(message);
+    ws.send("TESTING")
 
-        if(messageObj.command) {
-            if(messageObj.command === "initWs" && messageObj.data) {
-                // init client on server side
-                username = messageObj.data;
-                clients[username] = {position: {x: 0, y: 0}, input: {w: false, a: false, s: false, d: false}};
-                sockets[username] = ws;
-                // send client list of clients
-                ws.send(JSON.stringify({"command": "init", "data": clients}))
-            } else if(messageObj.command === "moveRight") {
-                clients[username].x += 50;
-                console.log(clients)
-            } else if(messageObj.command === "reqLoc") {
-                ws.send(JSON.stringify(clients))
-            }
-        } else if(messageObj.input) {
-            if(messageObj.input.w === true) {
-                clients[username].input.w = true;
-            } else if(messageObj.input.s === true) {
-                clients[username].input.s = true;
-            }
-        }
+    ws.on('message', message => {
+        readUserInput(ws, message.toString(), deltas, clients, username, username.user);
         console.log(clients)
     });
 
@@ -46,19 +28,22 @@ setInterval(function() {
 
     // recieve all of clients input
     // update clients
-    deltas = {};
-    for(user in clients) {
-        console.log(user);
-        if(clients[user].input.w === true) {
-            clients[user].position.x += 1;
-            deltas[user] = {"dx": 1};
-        }
+    deltasString = 'deltas|'
+    for(user in deltas) {
+        clients[user][0] += deltas[user][0];
+        clients[user][1] += deltas[user][1];
+
+        deltasString += `${user}.${deltas[user][0]}.${deltas[user][1]},`
+    }
+
+    if(deltasString.endsWith(',')) {
+        deltasString = deltasString.slice(0, -1);
     }
 
     // give all clients a list of all users and their deltas
     for(user in sockets) {
-        sockets[user].send(JSON.stringify({command: "update", data: deltas}));
+        sockets[user].send(deltasString);
     }
-}, 1000);
+}, 20);
 
 console.log('WebSocket server running on ws://localhost:8080');

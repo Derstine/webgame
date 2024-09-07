@@ -32,46 +32,60 @@
 
                 for(let user in clients) {
                     ctx.fillStyle = "green";
-                    ctx.fillRect(clients[user].position.x, 0, 20, 20);
-                }
-
-                
+                    ctx.fillRect(clients[user][0], clients[user][1], 20, 20);
+                }  
             }
 
+            // retrieve input
+            window.addEventListener('keydown', function(event) {
+                const pressedKey = event.key;
 
+                if(pressedKey === 'w') {
+                    w = true;
+                } else if(pressedKey === 's') {
+                    s = true;
+                } else if(pressedKey === 'd') {
+                    d = true;
+                } else if(pressedKey === 'a') {
+                    a = true;
+                }
+            })
+            window.addEventListener('keyup', function(event) {
+                const unpressedKey = event.key;
+
+                if(unpressedKey === 'w') {
+                    w = false;
+                } else if(unpressedKey === 's') {
+                    s = false;
+                } else if(unpressedKey === 'd') {
+                    d = false;
+                } else if(unpressedKey === 'a') {
+                    a = false;
+                }
+            })
             // game loop
             setInterval(() => {
                 if(wsOpen) {
+                    keyList = '';
+                    if (w) keyList += 'w.';
+                    if (s) keyList += 's.';
+                    if (d) keyList += 'd.';
+                    if (a) keyList += 'a.';
 
-                    // retrieve input
-                    window.addEventListener('keydown', function(event) {
-                        const pressedKey = event.key;
-    
-                        if(pressedKey === 'w') {
-                            console.log('you pressed the w key');
-                            w = true;
-                        } else if(pressedKey === 's') {
-                            console.log('you pressed the s key');
-                            s = true;
-                        }
-                    })
+                    if (keyList.endsWith('.')) {
+                        keyList = keyList.slice(0, -1);
+                    }
     
                     // send all input
-                    ws.send(JSON.stringify({"input": {"w": w, "s": s}}));
+                    ws.send(`input|${keyList}`);
     
                     // reset all input
-                    w = false;
-                    s = false;
     
                     console.log(clients);
                     draw();
                 }
 
-            }, 1000);
-
-            document.getElementById('moveRight').onclick = function() {
-                ws.send(JSON.stringify({"command": "reqLoc"}));
-            }
+            }, 20);
 
             document.getElementById('playButton').onclick = function() {
                 ws = new WebSocket('ws://localhost:8080');
@@ -79,27 +93,30 @@
                 ws.onopen = (event) => {
                     console.log("WebSocket connection opened");
                     wsOpen = true;
-                    ws.send(JSON.stringify({command: "initWs", data: document.getElementById('username').value}));
+                    ws.send(`init|${document.getElementById('username').value}`);
                 };
 
                             
                 // recieve from index end
                 ws.onmessage = (event) => {
                     console.log("Message from server", event.data);
-                    message = JSON.parse(event.data);
+                    [command, data] = event.data.split('|');
 
-                    if(message.command) {
-                        if(message.command === "init") {
-                            console.log(message.data);
-                            console.log('this shit passed')
-                            clients = message.data;
-                        } else if(message.command === "update") {
-                            for(let user in message.data) {
-                                console.log('message: ', message)
-                                console.log('user: ', user)
-                                clients[user].position.x += message.data[user].dx;
-                            }
-                        }
+                    if(command === 'deltas') {
+                        // deltas|user1.dx.dy,user2.dx.dy,etc
+                        deltasData = data.split(',');
+                        deltasData.forEach(userDeltas => {
+                            [user, dx, dy] = userDeltas.split('.');
+                            clients[user][0] += parseFloat(dx);
+                            clients[user][1] += parseFloat(dy);
+                        });
+                    } else if(command === 'gamedata') {
+                        // gamedata|user1.x.y,user2.x.y,etc
+                        gameData = data.split(',');
+                        gameData.forEach(user => {
+                            [user, x, y] = user.split('.');
+                            clients[user] = [parseFloat(x), parseFloat(y)];
+                        });
                     }
                 };
 
