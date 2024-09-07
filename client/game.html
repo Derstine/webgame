@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>HTML 5 Boilerplate</title>
+        <link rel="stylesheet" href="game.css">
+    </head>
+    <body>
+        <h1>Username:</h1>
+        <input id="username" type="text" placeholder="Enter Username" />
+        <button id="playButton">Play</button>
+        <button id="moveRight">Move Right</button>
+
+        <canvas id="gameView" width="500" height="500" style="border:1px solid black"></canvas>
+
+        <script>
+            w = false;
+            a = false;
+            s = false;
+            d = false;
+            let ws;
+            let wsOpen = false;
+            clients = {};
+
+            function draw() {
+                const gameView = document.getElementById("gameView");
+                const ctx = gameView.getContext("2d");
+
+                ctx.clearRect(0, 0, gameView.width, gameView.height);
+
+                for(let user in clients) {
+                    ctx.fillStyle = "green";
+                    ctx.fillRect(clients[user].position.x, 0, 20, 20);
+                }
+
+                
+            }
+
+
+            // game loop
+            setInterval(() => {
+                if(wsOpen) {
+
+                    // retrieve input
+                    window.addEventListener('keydown', function(event) {
+                        const pressedKey = event.key;
+    
+                        if(pressedKey === 'w') {
+                            console.log('you pressed the w key');
+                            w = true;
+                        } else if(pressedKey === 's') {
+                            console.log('you pressed the s key');
+                            s = true;
+                        }
+                    })
+    
+                    // send all input
+                    ws.send(JSON.stringify({"input": {"w": w, "s": s}}));
+    
+                    // reset all input
+                    w = false;
+                    s = false;
+    
+                    console.log(clients);
+                    draw();
+                }
+
+            }, 1000);
+
+            document.getElementById('moveRight').onclick = function() {
+                ws.send(JSON.stringify({"command": "reqLoc"}));
+            }
+
+            document.getElementById('playButton').onclick = function() {
+                ws = new WebSocket('ws://localhost:8080');
+
+                ws.onopen = (event) => {
+                    console.log("WebSocket connection opened");
+                    wsOpen = true;
+                    ws.send(JSON.stringify({command: "initWs", data: document.getElementById('username').value}));
+                };
+
+                            
+                // recieve from index end
+                ws.onmessage = (event) => {
+                    console.log("Message from server", event.data);
+                    message = JSON.parse(event.data);
+
+                    if(message.command) {
+                        if(message.command === "init") {
+                            console.log(message.data);
+                            console.log('this shit passed')
+                            clients = message.data;
+                        } else if(message.command === "update") {
+                            for(let user in message.data) {
+                                console.log('message: ', message)
+                                console.log('user: ', user)
+                                clients[user].position.x += message.data[user].dx;
+                            }
+                        }
+                    }
+                };
+
+                ws.onerror = (error) => {
+                    console.error("WebSocket error", error);
+                };
+
+                ws.onclose = () => {
+                    wsOpen = false;
+                    console.log("WebSocket connection closed");
+                };
+            };
+        </script>
+    </body>
+</html>
