@@ -1,5 +1,5 @@
 
-function readUserInput(ws, message, deltas, clients, userRef, user) {
+function readUserInput(clients, ws, message) {
     // only input recieved from user is either request for positions or keyboard input
 
     // user input is expected as 'command|data'
@@ -11,31 +11,33 @@ function readUserInput(ws, message, deltas, clients, userRef, user) {
         [command, data] = message.split('|');
 
         if(command == 'input') {
+            console.log('input: ', data)
             const speed = 2;
 
             keys = data.split('.');
             dx = 0;
             dy = 0;
 
-            if (keys.includes('w')) dy--
-            if (keys.includes('s')) dy++
+            if (keys.includes('w')) dy--;
+            if (keys.includes('s')) dy++;
             if (keys.includes('d')) dx++;
             if (keys.includes('a')) dx--;
 
-            deltas[user] = [dx * speed, dy * speed];
+            client = clients.get(ws);
+            client.dx = dx * speed;
+            client.dy = dy * speed;
+            clients.set(ws, client);
+            console.log('client: ', clients.get(ws))
         } else if(command == 'init') {
             console.log('recieved init with username: ', data)
             // init client on server side
-            userRef.user = data;
-            clients[data] = [0, 0];
-            deltas[data] = [0,0];
-            sockets[data] = ws;
+            clients.set(ws, {username: data, x: 0, y: 0, dx: 0, dy: 0})
             // send client list of clients
             sendGameData(ws, clients);
-            // send all clients a new client
-            for(let user in sockets) {
-                sockets[user].send(`newclient|${data}.${0}.${0}`);
-            }
+            // send all clients a new client to add
+            for (const ws of clients.keys()) {
+                ws.send(`newclient|${data}.${0}.${0}`);
+            }     
         } else if(command == 'request') {
             console.log('client is requesting data')
         }
@@ -47,9 +49,9 @@ function readUserInput(ws, message, deltas, clients, userRef, user) {
 
 function sendGameData(ws, clients) {
     gameDataString = "gamedata|";
-    for(let user in clients) {
-        gameDataString += `${user}.${clients[user][0]}.${clients[user][1]},`;
-    }
+    for (const user of clients.values()) {
+        gameDataString += `${user.username}.${user.x}.${user.y},`;
+    }   
     if(gameDataString.endsWith(',')) {
         gameDataString = gameDataString.slice(0, -1);
     }

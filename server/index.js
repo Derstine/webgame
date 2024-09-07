@@ -3,20 +3,16 @@ const readUserInput = require('./userInput')
 const wss = new WebSocket.Server({ port: 8080 });
 
 const USER_CAP = 20;
-clients = {};
-deltas = {};
-sockets = {};
 
+clients = new Map();
 
 wss.on('connection', ws => {
-    username = {user: ''};
     // send users and locations
 
     ws.send("TESTING")
 
     ws.on('message', message => {
-        readUserInput(ws, message.toString(), deltas, clients, username, username.user);
-        console.log(clients)
+        readUserInput(clients, ws, message.toString());
     });
 
     ws.on('close', () => {
@@ -30,11 +26,11 @@ setInterval(function() {
     // recieve all of clients input
     // update clients
     deltasString = 'deltas|'
-    for(user in deltas) {
-        clients[user][0] += deltas[user][0];
-        clients[user][1] += deltas[user][1];
+    for(const user of clients.values()) {
+        user.x += user.dx;
+        user.y += user.dy;
 
-        deltasString += `${user}.${deltas[user][0]}.${deltas[user][1]},`
+        deltasString += `${user.username}.${user.dx}.${user.dy},`
     }
 
     if(deltasString.endsWith(',')) {
@@ -42,8 +38,9 @@ setInterval(function() {
     }
 
     // give all clients a list of all users and their deltas
-    for(user in sockets) {
-        sockets[user].send(deltasString);
+    for(const ws of clients.keys()) {
+        console.log('test')
+        ws.send(deltasString);
     }
 }, 20);
 
