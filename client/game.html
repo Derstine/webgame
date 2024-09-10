@@ -8,13 +8,14 @@
         <link rel="stylesheet" href="game.css">
     </head>
     <body>
-        <h1>Username:</h1>
-        <input id="username" type="text" placeholder="Enter Username" />
-        <input id="color" type="text" placeholder="Enter color" />
-        <button id="playButton">Play</button>
-        <button id="moveRight">Move Right</button>
+        <div class="options">
+            <h1>Username:</h1>
+            <input id="username" type="text" placeholder="Enter Username" />
+            <input id="color" type="text" placeholder="Enter color" />
+            <button id="playButton">Play</button>
+        </div>
 
-        <canvas id="gameView" width="500" height="500" style="border:1px solid black"></canvas>
+        <canvas id="gameView"></canvas>
 
         <script>
             w = false;
@@ -25,6 +26,9 @@
             let wsOpen = false;
             clients = {};
 
+            gameView.width = window.innerWidth;
+            gameView.height = window.innerHeight;
+
             function draw() {
                 const gameView = document.getElementById("gameView");
                 const ctx = gameView.getContext("2d");
@@ -33,7 +37,16 @@
 
                 for(let user in clients) {
                     ctx.fillStyle = clients[user].color;
-                    ctx.fillRect(clients[user].x, clients[user].y, 20, 20);
+                    ctx.fillRect(clients[user].x, clients[user].y, 40, 40);
+
+                    // Set the text style and get the width of the text
+                    ctx.fillStyle = "black";
+                    ctx.font = "12px serif";
+                    const textWidth = ctx.measureText(user).width;
+
+                    // Draw the text centered horizontally
+                    const textX = clients[user].x + (40 / 2) - (textWidth / 2); // Adjust text position to center
+                    ctx.fillText(user, textX, clients[user].y + 45);
                 }  
             }
 
@@ -88,10 +101,12 @@
 
             }, 16);
 
-            document.getElementById('playButton').onclick = function() {
+            document.getElementById('playButton').onclick = function() {                
                 ws = new WebSocket('ws://localhost:8080');
 
                 ws.onopen = (event) => {
+                    // hide ui
+                    document.querySelector(".options").style.display = "none";
                     console.log("WebSocket connection opened");
                     wsOpen = true;
                     ws.send(`init|${document.getElementById('username').value}.${document.getElementById('color').value}`);
