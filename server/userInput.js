@@ -5,7 +5,7 @@ function readUserInput(clients, ws, message) {
     // user input is expected as 'command|data'
     // keyboard input: 'input|w.d' - client has keys w and d pressed
     // TO DO: USERNAME NEEDS TO BE UPDATED TO A UNIQUE SERVER SIDE GENERATED ID
-    // start websocket: 'init|username' - client connects and gives username
+    // start websocket: 'init|username.color' - client connects and gives username
     // request for game data: 'request|gamedata' - client needs game data
     try {
         [command, data] = message.split('|');
@@ -29,14 +29,15 @@ function readUserInput(clients, ws, message) {
             clients.set(ws, client);
             console.log('client: ', clients.get(ws))
         } else if(command == 'init') {
+            [user, color] = data.split('.');
             console.log('recieved init with username: ', data)
             // init client on server side
-            clients.set(ws, {username: data, x: 0, y: 0, dx: 0, dy: 0})
+            clients.set(ws, {username: user, color: color, x: 0, y: 0, dx: 0, dy: 0})
             // send client list of clients
             sendGameData(ws, clients);
             // send all clients a new client to add
             for (const ws of clients.keys()) {
-                ws.send(`newclient|${data}.${0}.${0}`);
+                ws.send(`newclient|${user}.${color}.${0}.${0}`);
             }     
         } else if(command == 'request') {
             console.log('client is requesting data')
@@ -48,9 +49,10 @@ function readUserInput(clients, ws, message) {
 }
 
 function sendGameData(ws, clients) {
+    // "gamedata|user1.color.x.y|user2.color.x.y|etc"
     gameDataString = "gamedata|";
     for (const user of clients.values()) {
-        gameDataString += `${user.username}.${user.x}.${user.y},`;
+        gameDataString += `${user.username}.${user.color}.${user.x}.${user.y},`;
     }   
     if(gameDataString.endsWith(',')) {
         gameDataString = gameDataString.slice(0, -1);

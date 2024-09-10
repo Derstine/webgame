@@ -39,9 +39,8 @@ setInterval(function() {
 
     // give all clients a list of all users and their deltas
     for(const ws of clients.keys()) {
-        console.log('test')
         ws.send(deltasString);
     }
-}, 20);
+}, 16);
 
-console.log('WebSocket server running on ws://localhost:8080');
+console.log('websocket server running');

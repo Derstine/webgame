@@ -10,6 +10,7 @@
     <body>
         <h1>Username:</h1>
         <input id="username" type="text" placeholder="Enter Username" />
+        <input id="color" type="text" placeholder="Enter color" />
         <button id="playButton">Play</button>
         <button id="moveRight">Move Right</button>
 
@@ -31,8 +32,8 @@
                 ctx.clearRect(0, 0, gameView.width, gameView.height);
 
                 for(let user in clients) {
-                    ctx.fillStyle = "green";
-                    ctx.fillRect(clients[user][0], clients[user][1], 20, 20);
+                    ctx.fillStyle = clients[user].color;
+                    ctx.fillRect(clients[user].x, clients[user].y, 20, 20);
                 }  
             }
 
@@ -85,7 +86,7 @@
                     draw();
                 }
 
-            }, 20);
+            }, 16);
 
             document.getElementById('playButton').onclick = function() {
                 ws = new WebSocket('ws://localhost:8080');
@@ -93,7 +94,7 @@
                 ws.onopen = (event) => {
                     console.log("WebSocket connection opened");
                     wsOpen = true;
-                    ws.send(`init|${document.getElementById('username').value}`);
+                    ws.send(`init|${document.getElementById('username').value}.${document.getElementById('color').value}`);
                 };
 
                             
@@ -107,20 +108,20 @@
                         deltasData = data.split(',');
                         deltasData.forEach(userDeltas => {
                             [user, dx, dy] = userDeltas.split('.');
-                            clients[user][0] += parseFloat(dx);
-                            clients[user][1] += parseFloat(dy);
+                            clients[user].x += parseFloat(dx);
+                            clients[user].y += parseFloat(dy);
                         });
                     } else if(command === 'gamedata') {
-                        // gamedata|user1.x.y,user2.x.y,etc
+                        // gamedata|user1.color.x.y,user2.color.x.y,etc
                         gameData = data.split(',');
                         gameData.forEach(user => {
-                            [user, x, y] = user.split('.');
-                            clients[user] = [parseFloat(x), parseFloat(y)];
+                            [user, color, x, y] = user.split('.');
+                            clients[user] = {color: color, x: parseFloat(x), y: parseFloat(y)};
                         });
                     } else if(command == 'newclient') {
                         // newclient|user.x.y
-                        [user, x, y] = data.split('.');
-                        clients[user] = [parseFloat(x), parseFloat(y)];
+                        [user, color, x, y] = data.split('.');
+                        clients[user] = {color: color, x: parseFloat(x), y: parseFloat(y)};
                     }
                 };
 
